@@ -1,7 +1,8 @@
 import { cpus } from 'os';
 
 const CORES_LENGTH = cpus().length;
-const OPTIMAL_THREADS = Math.min(8, Math.max(4, Math.floor(CORES_LENGTH / 2)));
+// More aggressive thread allocation for large systems
+const OPTIMAL_THREADS = Math.min(16, Math.max(4, Math.floor(CORES_LENGTH * 0.75)));
 
 const TEXT_DECODER = new TextDecoder();
 
@@ -30,6 +31,28 @@ export class OllamaClient {
       return res.status === 200;
     } catch {
       return false;
+    }
+  }
+
+  /**
+   * Triggers a model warm-up to load it into VRAM and prepare the cache.
+   */
+  async warmup(model: string): Promise<void> {
+    try {
+      await fetch(`${this.baseUrl}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'system', content: 'warmup' }],
+          stream: false,
+          keep_alive: '60m',
+          options: { num_predict: 1 }
+        }),
+        signal: AbortSignal.timeout(5000)
+      });
+    } catch {
+      // Ignore warmup failures
     }
   }
 
@@ -74,17 +97,23 @@ export class OllamaClient {
       model,
       messages,
       stream: true,
-      keep_alive: '60m',
+      keep_alive: '120m',
       options: {
-        num_ctx: 2048,
-        num_keep: 128,
-        use_mmap: true,
+        num_ctx: 4096,
+        num_predict: 2048,
         num_thread: OPTIMAL_THREADS,
-        temperature: temperature,
+        temperature: 0.0,
         top_k: 1,
-        top_p: 0.1,
-        num_batch: 256,
+        top_p: 1.0,
+        repeat_penalty: 1.0,
+        num_batch: 512,
+        use_mmap: true,
+        use_mlock: true,
         f16_kv: true,
+        low_vram: false,
+        num_gpu: 99, // Force maximum GPU layers
+        main_gpu: 0,
+        num_keep: 24, // Keep critical system tokens in cache
       }
     };
 

@@ -5,12 +5,19 @@ import type { OperatingMode } from './prompt';
 
 export class SessionHistory {
   private messages: ChatMessage[] = [];
-  private maxEstimatedTokens = 1500;
+  private maxEstimatedTokens = 2048;
   private totalCharLength = 0;
+  private baseSystemPrompt = 'Vanguard Terminal. Elite. Concise.';
 
   addMessage(role: ChatMessage['role'], content: string): void {
-    this.messages.push({ role, content });
-    this.totalCharLength += content.length;
+    const last = this.messages[this.messages.length - 1];
+    if (last && last.role === role && role === 'assistant') {
+      last.content += content;
+      this.totalCharLength += content.length;
+    } else {
+      this.messages.push({ role, content });
+      this.totalCharLength += content.length;
+    }
     this.pruneHistory();
   }
 
@@ -20,16 +27,31 @@ export class SessionHistory {
   }
 
   getRawMessages(): ChatMessage[] {
-    return this.messages.length > 0 ? this.messages.slice(1) : [];
+    return this.messages;
   }
 
-  getApiPayload(systemPrompt: string): ChatMessage[] {
-    if (this.messages.length === 0) {
-      this.messages.push({ role: 'system', content: systemPrompt });
-    } else {
-      this.messages[0]!.content = systemPrompt;
+  getApiPayload(modePrompt: string): ChatMessage[] {
+    const payload: ChatMessage[] = [
+      { role: 'system', content: this.baseSystemPrompt }
+    ];
+
+    for (let i = 0; i < this.messages.length; i++) {
+      const msg = this.messages[i]!;
+      if (i === this.messages.length - 1 && msg.role === 'user') {
+        payload.push({
+          role: 'user',
+          content: `[Instruction: ${modePrompt}]\n${msg.content}`
+        });
+      } else {
+        payload.push({ ...msg });
+      }
     }
-    return this.messages;
+
+    if (this.messages.length === 0) {
+      payload.push({ role: 'system', content: modePrompt });
+    }
+
+    return payload;
   }
 
   getEstimatedTokenCount(): number {

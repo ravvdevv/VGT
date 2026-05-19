@@ -238,12 +238,12 @@ export class StreamRenderer {
         this.isStartOfLine = false;
       }
 
+      this.bufferOutput(char);
+
       if (char === '\n') {
-        this.bufferOutput(COLOR.RESET + '\n');
+        this.bufferOutput(COLOR.RESET);
         this.lineNumber++;
         this.isStartOfLine = true;
-      } else {
-        this.bufferOutput(char);
       }
     } else {
       this.bufferOutput(char);

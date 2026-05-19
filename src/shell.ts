@@ -138,6 +138,8 @@ export class InteractiveShell {
           if (MODES[targetMode]) {
             this.currentMode = targetMode;
             console.log(`\n ${COLOR.EMERALD}[success]${COLOR.RESET} ${COLOR.SLATE}Switched to ${COLOR.BOLD}${MODES[targetMode].badge} ${MODES[targetMode].name}${COLOR.RESET}\n`);
+            // Warmup background to prepare cache for new mode
+            this.client.warmup(this.currentModel).catch(() => {});
           } else {
             console.log(`\n ${COLOR.CRIMSON}[error]${COLOR.RESET} ${COLOR.SLATE}Unknown mode "${args}". Choose from: general, security, feynman, caveman${COLOR.RESET}\n`);
           }
@@ -164,6 +166,8 @@ export class InteractiveShell {
           if (matchedModel) {
             this.currentModel = matchedModel;
             console.log(`\n ${COLOR.EMERALD}[success]${COLOR.RESET} ${COLOR.SLATE}Active model changed to ${COLOR.CYAN}${matchedModel}${COLOR.RESET}\n`);
+            // Trigger model load immediately
+            this.client.warmup(this.currentModel).catch(() => {});
           } else {
             console.log(`\n ${COLOR.CRIMSON}[error]${COLOR.RESET} ${COLOR.SLATE}Model "${args}" not found in Ollama. Pull it first.${COLOR.RESET}\n`);
           }
