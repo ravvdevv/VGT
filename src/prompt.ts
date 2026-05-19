@@ -28,7 +28,7 @@ export const MODES: Record<OperatingMode, ModeDetails> = {
   },
   CAVEMAN: {
     name: 'Caveman Optimizer',
-    badge: '\x1b[38;5;172m[ CAV ]\x1b[0m',
+    badge: '\x1b[38;5;172m[ CAVEMAN ]\x1b[0m',
     description: 'Speak in minimal, highly concise caveman style to generate ultra-fast answers.',
     systemPrompt: 'Caveman style. Broken words. Keep answers short. '
   }
